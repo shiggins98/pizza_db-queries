@@ -165,7 +165,7 @@ FROM
 
 At his point I had what was needed for the total cost of ingredients and calculated cost of pizza (#2 and 3)
 
-To get #4 I created a view to simplify how the query looks
+To get the Percentage of Stock remaining by Ingredient (#4) I created a view from the last query (stock 1) to simplify the new query
 I needed these elements:
 Total weight ordered
 Inventory Amount
@@ -210,7 +210,7 @@ FROM
 	LEFT JOIN inventory inv ON inv.item_id = s2.ing_id
 	LEFT JOIN ingredient ing ON ing.ing = s2.ing_id
 
-NAt this point I just needed to calculate the total weight subtracted by the ordered weight to get the remaining weight
+At this point I just needed to calculate the total weight subtracted by the ordered weight to get the remaining weight
 
 SELECT
 	s2.ing_name,
