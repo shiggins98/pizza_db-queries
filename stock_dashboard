@@ -1,69 +1,97 @@
-We'll need 2 different views of the data
+Total quantity by ingredient
+Total cost of ingredients 
+Calculated cost of pizza
+Percentage stock remaining by ingredient
+
+These are the view needed for the Inventory Dashboard. I made 2 different qureies for this one.
 
 To get #1 we need # of orders*ingredient quantity in recipe
 
 Order and item table
 
 SELECT
-o.item_id,
-i.sku,
-i.item_name
-sum(o.quantity) as order_quantity
-from orders o
-left join item i on o.item_id=i.item_id
-group by o.item_id, i.sku, i.item_name
+	o.item_id,
+	i.sku,
+	i.item_name sum( o.quantity ) AS order_quantity 
+FROM
+	orders o
+	LEFT JOIN item i ON o.item_id = i.item_id 
+GROUP BY
+	o.item_id,
+	i.sku,
+	i.item_name
 
 This gives us orders per pizza, but we need to break down the pizzas by ingredients, from the recipe table
 
 SELECT
-o.item_id,
-i.sku,
-i.item_name,
-r.ing_id,
-r.quantity as recipe_quantity,
-sum(o.quantity) as order_quantity
-from orders o
-left join item i on o.item_id=i.item_id
-left join recipe r on i.sku=r.recipe_id
-group by 
-o.item_id, i.sku, i.item_name, r.ing_id, r.quantity
+	o.item_id,
+	i.sku,
+	i.item_name,
+	r.ing_id,
+	r.quantity AS recipe_quantity,
+	sum( o.quantity ) AS order_quantity 
+FROM
+	orders o
+	LEFT JOIN item i ON o.item_id = i.item_id
+	LEFT JOIN recipe r ON i.sku = r.recipe_id 
+GROUP BY
+	o.item_id,
+	i.sku,
+	i.item_name,
+	r.ing_id,
+	r.quantity
 
 We also need the ingredient name, which means we’ll have to join the ing table as well
 
 SELECT
-o.item_id,
-i.sku,
-i.item_name,
-r.ing_id,
-ing.ing_name,
-r.quantity as recipe_quantity,
-sum(o.quantity) as order_quantity
-from orders o
-left join item i on o.item_id=i.item_id
-left join recipe r on i.sku=r.recipe_id
-left join ingredient ing on ing.ing_id=r.ing_id
-group by 
-o.item_id, i.sku, i.item_name, r.ing_id, r.quantity, ing.ing_name
+	o.item_id,
+	i.sku,
+	i.item_name,
+	r.ing_id,
+	ing.ing_name,
+	r.quantity AS recipe_quantity,
+	sum( o.quantity ) AS order_quantity 
+FROM
+	orders o
+	LEFT JOIN item i ON o.item_id = i.item_id
+	LEFT JOIN recipe r ON i.sku = r.recipe_id
+	LEFT JOIN ingredient ing ON ing.ing_id = r.ing_id 
+GROUP BY
+	o.item_id,
+	i.sku,
+	i.item_name,
+	r.ing_id,
+	r.quantity,
+	ing.ing_name
 
 To calculate total cost of ingredients we just need to multiply the unit cost by the unit weight (from the ingredient table, which is already joined)
-SELECT
-o.item_id,
-i.sku,
-i.item_name,
-r.ing_id,
-ing.ing_name,
-r.quantity as recipe_quantity,
-sum(o.quantity) as order_quantity
-ing.ing_weight,
-ing.ing_price
-from orders o
-left join item i on o.item_id=i.item_id
-left join recipe r on i.sku=r.recipe_id
-left join ingredient ing on ing.ing_id=r.ing_id
-group by 
-o.item_id, i.sku, i.item_name, r.ing_id, r.quantity, ing.ing_name, ing.ing_weight, ing.ing_price
 
-We need to multiply order quantity by recipe quantity, however, order quantity is already an aggregated field, so we need to create a sub query, in which the current Query will be aliased as s1
+SELECT
+	o.item_id,
+	i.sku,
+	i.item_name,
+	r.ing_id,
+	ing.ing_name,
+	r.quantity AS recipe_quantity,
+	sum( o.quantity ) AS order_quantity ing.ing_weight,
+	ing.ing_price 
+FROM
+	orders o
+	LEFT JOIN item i ON o.item_id = i.item_id
+	LEFT JOIN recipe r ON i.sku = r.recipe_id
+	LEFT JOIN ingredient ing ON ing.ing_id = r.ing_id 
+GROUP BY
+	o.item_id,
+	i.sku,
+	i.item_name,
+	r.ing_id,
+	r.quantity,
+	ing.ing_name,
+	ing.ing_weight,
+	ing.ing_price
+
+I needed to multiply order quantity by recipe quantity, however, order_quantity was already an aggregated field.
+I needed to create a sub query, in which the current Query was aliased as s1
 
 SELECT
 *
@@ -92,46 +120,8 @@ GROUP BY
 	ing.ing_weight,
 	ing.ing_price) s1
 
-Now we can specify what columns we want from the query result, as if it were a new table.
+Then I could specify what columns I wanted from the query result, as if it were a new table.
 
-SELECT
-	s1.item_name,
-	s1.ing_id,
-	s1.ing_name,
-	s1.ing_weight,
-	s1.ing_price,
-	s1.order_quantity,
-	s1.recipe_quantity,
-	s1.order_quantity*s1.recipe_quantity as ordered_weight
-	s1.ing_price/s1.ing_weight as unit_cost,
-	(s1.order_quantity*s1.recipe_quantity)*(s1.ing_price/s1.ing_weight) as ingredient_cost
-FROM
-(SELECT
-	o.item_id,
-	i.sku,
-	i.item_name,
-	r.ing_id,
-	ing.ing_name,
-	r.quantity AS recipe_quantity,
-	sum( o.quantity ) AS order_quantity 
-	ing.ing_weight,
-	ing.ing_price 
-FROM
-	orders o
-	LEFT JOIN item i ON o.item_id = i.item_id
-	LEFT JOIN recipe r ON i.sku = r.recipe_id
-	LEFT JOIN ingredient ing ON ing.ing_id = r.ing_id 
-GROUP BY
-	o.item_id,
-	i.sku,
-	i.item_name,
-	r.ing_id,
-	r.quantity,
-	ing.ing_name,
-	ing.ing_weight,
-	ing.ing_price) s1
-
-Beautified
 SELECT
 	s1.item_name,
 	s1.ing_id,
@@ -172,11 +162,11 @@ FROM
 		ing.ing_weight,
 	ing.ing_price 
 	) s1
-Now we have what is needed for #2 and 3
 
-To get #4 we’ll create a view to simplify how the query looks
+At his point I had what was needed for the total cost of ingredients and calculated cost of pizza (#2 and 3)
 
-We’ll need 
+To get #4 I created a view to simplify how the query looks
+I needed these elements:
 Total weight ordered
 Inventory Amount
 Inventory remaining per ingredient
@@ -188,7 +178,7 @@ FROM
 	stock1
 	GROUP BY ing_name
 
-Now we need total weight of inventory for each ingredient
+Then I needed the total weight of inventory for each ingredient
 
 SELECT
 	*
@@ -202,7 +192,7 @@ FROM
 	GROUP BY ing_name, ing_id) s2
 	LEFT JOIN inventory inv ON inv.item_id = s2.ing_id
 
-Now we have the quantity for each ingredient, but we also need to add in the total weight in stock from the ingredients table (weight*quantity)
+I had the quantity of each ingredient, but I also needed to add in the total weight in stock from the ingredients table (weight*quantity)
 
 SELECT
 	s2.ing_name,
@@ -220,27 +210,8 @@ FROM
 	LEFT JOIN inventory inv ON inv.item_id = s2.ing_id
 	LEFT JOIN ingredient ing ON ing.ing = s2.ing_id
 
-Now we just need to calculate the total weight subtracted by the ordered weight to get the remaining weight
+NAt this point I just needed to calculate the total weight subtracted by the ordered weight to get the remaining weight
 
-SELECT
-	s2.ing_name,
-	s2.ordered_weight,
-	ing.ing_weight*inv.quantity AS total_inv_weight,
-	(ing.ing_weight*inv.quantity)-s2.ordered_weight AS remaining_weight
-FROM
-(SELECT
-	ing_id,
-	ing_name,
-	SUM(ordered_weight) AS ordered_weight
-FROM
-	stock1
-	GROUP BY ing_name, ing_id) s2
-	
-	LEFT JOIN inventory inv ON inv.item_id = s2.ing_id
-	LEFT JOIN ingredient ing ON ing.ing = s2.ing_id
-
-
-Beautified
 SELECT
 	s2.ing_name,
 	s2.ordered_weight,
